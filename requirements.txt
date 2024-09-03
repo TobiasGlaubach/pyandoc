@@ -1,3 +1,2 @@
 markdown
-shutil
-docx
+python-docx

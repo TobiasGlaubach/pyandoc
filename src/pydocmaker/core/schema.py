@@ -8,14 +8,6 @@ from collections import UserDict, UserList
 class c():
     """This is the basic schema for the main building blocks for a document"""
 
-    # @staticmethod
-    # def section(children:list=None, caption=''):
-    #     return {
-    #         'typ': 'section',
-    #         'children': [] if children is None else children,
-    #         'caption': caption
-    #     }
-    
     @staticmethod
     def markdown(children=''):
         return {
@@ -99,7 +91,7 @@ class SectionedDoc(UserDict):
     def to_flow_doc(self):
         doc = FlowDoc()
         for section_caption, section_parts in self.items():
-            doc.add(c.markdown(f'# {section_caption}'))
+            doc.add(c.markdown(f'## {section_caption}'))
             for part in section_parts:
                 doc.add(part)
         return doc
@@ -108,69 +100,20 @@ class SectionedDoc(UserDict):
         return self.to_flow_doc().dump()
 
 
-    
-# @dataclass()
-# class csection:
-#     caption:str=field(default='')
-#     children: list=field(default_factory=list)
-#     type: str=field(default='section')
-
-# @dataclass()
-# class cMarkdown:
-#     children:str=field(default='')
-#     type: str=field(default='markdown')
-
-# @dataclass()
-# class cLargeText:
-#     children:str=field(default='')
-#     type: str=field(default='text')
-
-# @dataclass()
-# class cIterator:
-    
-#     children: list=field(default_factory=list)
-#     type: str=field(default='iter')
-
-# @dataclass()
-# class cTable:
-    
-#     layout:str=field(default='')
-#     hlines:int=field(default=1)
-#     caption:str=field(default='')
-    
-#     type:str=field(default='table')
-#     children:list=field(default_factory=lambda : [[]])
-
-# @dataclass()
-# class cImage:
-    
-#     children:str=field(default='')
-#     imageblob:str=field(default='')
-#     width:float=field(default=0.8)
-#     caption:str=field(default='')
-    
-#     type:str=field(default='image')
-
-
-#     def get_src(self):
-#         s = self.imageblob.decode("utf-8") if isinstance(self.imageblob, bytes) else self.imageblob
-#         if not s.startswith('data:image'):
-#             s = 'data:image/png;base64, ' + s
-#         return s
-        
-
-# @dataclass()
-# class cVerbatim:
-#     children:str=field(default='')
-#     type:str=field(default='verbatim')
-
-
+def _serialize(v):
+    if isinstance(v, str):
+        return v
+    elif isinstance(v, list):
+        return [dump(vv) for vv in v]
+    elif isinstance(v, dict):
+        return v
+    else:
+        TypeError(f'{type(v)=} is of unknown type only dataclass, str, list, and dict is allowed!')
 
 
 def _construct(v):
-    if test_is_dataclass(v):
-        return v
-    elif isinstance(v, str):
+
+    if isinstance(v, str):
         return v
     elif isinstance(v, list):
         return [_construct(vv) for vv in v]
@@ -192,34 +135,14 @@ def construct(type:str, **kwargs):
     else:
         TypeError(f'{type=} is of unknown type only dataclass, str, list, and dict is allowed!')
 
-def _serialize(v):
-    if test_is_dataclass(v):
-        return dump(v)
-    elif isinstance(v, str):
-        return v
-    elif isinstance(v, list):
-        return [dump(vv) for vv in v]
-    elif isinstance(v, dict):
-        return v
-    else:
-        TypeError(f'{type(v)=} is of unknown type only dataclass, str, list, and dict is allowed!')
-
-
 def dump(obj):
     if isinstance(obj, list):
         return [dump(o) for o in obj]
     
-    if not isinstance(obj, dict) and test_is_dataclass(obj):
-        obj = obj.asdict()
-
     assert isinstance(obj, dict)
     return {k:_serialize(v) for k, v in obj.items()}
 
-def test_is_dataclass(obj):
-    return isinstance(obj, object) and is_dataclass(obj)
-
 
 if __name__ == "__main__":
-
     mysection = c.markdown('# Introduction')
-    assert test_is_dataclass(mysection)
+

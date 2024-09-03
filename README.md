@@ -1,4 +1,4 @@
-# pyandoc
+# pydocmaker
 a minimal document maker to make docx, markdown, html, and tex documents from python.
 Written in pure python. 
 

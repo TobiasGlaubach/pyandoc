@@ -1,0 +1,6 @@
+cd into my folder
+
+python setup.py sdist
+
+
+twine upload dist/*

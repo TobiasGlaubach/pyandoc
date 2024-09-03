@@ -7,4 +7,4 @@ def get_property(prop, project):
     return result.group(1)
 
 # print(get_property('__version__', "mke_client"))
-from setuptools import setup; setup(version=get_property('__version__', "pdf2redmine"))
+from setuptools import setup; setup(version=get_property('__version__', "pydocmaker"))
