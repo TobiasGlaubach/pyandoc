@@ -50,6 +50,7 @@ doc.to_html('path/to/my_file.html') # will write a HTML file
 doc.to_docx('path/to/my_file.docx') # will write a docx file
 doc.to_textile('path/to/my_file.textile.zip') # will pack all textile files and write them to a zip archive
 doc.to_tex('path/to/my_file.tex.zip') # will pack all tex files and write them to a zip archive
+doc.to_ipynb('path/to/my_file.ipynb') # will write a ipynb file
 
 doc.to_json('path/to/doc.json') # saves the document
 ```
