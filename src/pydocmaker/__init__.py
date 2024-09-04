@@ -1,4 +1,4 @@
-__version__ = '1.1.3'
+__version__ = '1.1.4'
 
 from pydocmaker.core.schema import FlowDoc, SectionedDoc, construct, constr, buildingblocks
 

@@ -19,6 +19,12 @@ from ..exporters.ex_tex import convert as _to_tex
 
 def is_notebook() -> bool:
     try:
+        import __main__ as main
+        return hasattr(main, '__file__')
+    except Exception as err:
+        pass
+
+    try:
         shell = get_ipython().__class__.__name__
         if shell == 'ZMQInteractiveShell':
             return True   # Jupyter notebook or qtconsole

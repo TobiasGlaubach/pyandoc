@@ -33,16 +33,19 @@ doc.add_kw('verbatim', """def hello_world():
 # this is how to add markdown
 doc.add_kw('markdown', """This is some *fancy* `markdown` **text**: 
 - first
-    - some [link](http://your_link.de/your_file.png)
+    - some [link]("https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png")
 - second
 """)
 
 # this is how to add an image from link
-doc.add(pyd.constr.image_from_link(url='http://your_link.de/your_file.png', caption='', children='', width=0.8))
+doc.add(pyd.constr.image_from_link(url="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png", caption='', children='', width=0.8))
 
 doc.show()
+```
 
+export via:
 
+```python
 doc.to_html('path/to/my_file.html') # will write a HTML file
 doc.to_docx('path/to/my_file.docx') # will write a docx file
 doc.to_textile('path/to/my_file.textile.zip') # will pack all textile files and write them to a zip archive
@@ -104,7 +107,7 @@ docpart = pyd.constr.text(children='')
 docpart = pyd.constr.verbatim(children='')
 docpart = pyd.constr.iter(children=[])
 docpart = pyd.constr.image(imageblob='', caption='', children='', width=0.8)
-docpart = pyd.constr.image_from_link(url='http://your_link.de/your_file.png', caption='', children='', width=0.8)
+docpart = pyd.constr.image_from_link(url='https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png', caption='', children='', width=0.8)
 docpart = pyd.constr.image_from_file(path='path/to/your_file.png', children='', caption='', width=0.8)
 docpart = pyd.constr.image_from_fig(caption='', width=0.8, name=None, fig=None)
 docpart = pyd.constr.image_from_obj(np.array(np.arange(255).tolist() * 255, dtype="uint8"), caption = '', width=0.8, name=None)
@@ -135,7 +138,7 @@ import numpy as np
 
 doc = pyd.FlowDoc()
 doc.add('dummy text')
-doc.add(pyd.constr.image_from_link(url='http://your_link.de/your_file.png', caption='', children='', width=0.8))
+doc.add(pyd.constr.image_from_link(url='https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png', caption='', children='', width=0.8))
 doc.show()
 
 ```
@@ -153,7 +156,7 @@ Image from link
 
 ```python
 doc = pyd.FlowDoc()
-doc.add(pyd.constr.image_from_link("https://upload.wikimedia.org/wikipedia/en/b/b7/Logo_of_the_Max_Planck_Society.png"))
+doc.add(pyd.constr.image_from_link("https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png"))
 ```
 
 Image from numpy array 
