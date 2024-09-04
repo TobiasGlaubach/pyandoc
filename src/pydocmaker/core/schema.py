@@ -13,6 +13,7 @@ import copy
 
 from ..exporters.ex_docx import convert as _to_docx
 from ..exporters.ex_html import convert as _to_html
+from ..exporters.ex_ipynb import convert as _to_ipynb
 from ..exporters.ex_redmine import convert as _to_textile
 from ..exporters.ex_tex import convert as _to_tex
 
@@ -20,7 +21,7 @@ from ..exporters.ex_tex import convert as _to_tex
 def is_notebook() -> bool:
     try:
         import __main__ as main
-        return hasattr(main, '__file__')
+        return not hasattr(main, '__file__')
     except Exception as err:
         pass
 
@@ -261,9 +262,16 @@ class FlowDoc(UserList):
     
     def _ret(self, m, path_or_stream):
         if isinstance(path_or_stream, str):
+            with open(path_or_stream, "w") as f:
+                f.write(m)
+            return True
+        
+        if isinstance(path_or_stream, bytes):
             with open(path_or_stream, "wb") as f:
                 f.write(m)
             return True
+        
+
         elif hasattr(path_or_stream, 'write'):
             path_or_stream.write(m)
             return True
@@ -293,6 +301,18 @@ class FlowDoc(UserList):
             str: The data as bytes, or True if the data was saved successfully to a file or stream.
         """
         return self._ret(_to_docx(self.dump()), path_or_stream)        
+    
+    def to_ipynb(self, path_or_stream=None) -> str:
+        """
+        Converts the current object to an ipynb (iPython notebook) file.
+
+        Args:
+            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
+
+        Returns:
+            str: The data as string, or True if the data was saved successfully to a file or stream.
+        """
+        return self._ret(_to_ipynb(self.dump()), path_or_stream)
     
     def to_html(self, path_or_stream=None) -> str:
         """
@@ -462,6 +482,18 @@ class SectionedDoc(UserDict):
             str: The data as bytes, or True if the data was saved successfully to a file or stream.
         """
         return self.to_flow_doc().to_docx(path_or_stream)
+    
+    def to_ipynb(self, path_or_stream=None) -> str:
+        """
+        Converts the current object to an ipynb (iPython notebook) file.
+
+        Args:
+            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
+
+        Returns:
+            str: The data as string, or True if the data was saved successfully to a file or stream.
+        """
+        return self.to_flow_doc().to_ipynb(path_or_stream)
     
     def to_html(self, path_or_stream=None) -> str:
         """
