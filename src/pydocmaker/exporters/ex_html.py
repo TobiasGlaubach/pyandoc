@@ -114,17 +114,18 @@ class html_renderer:
         content = kwargs.get('content', kwargs.get('children'))
 
         j = content
-        nn = [len(s) for s in j.split('\n')]
-        n = len(n)
-        w = max(nn)
+        # nn = [len(s) for s in j.split('\n')]
+        # n = len(nn)
+        # w = max(nn)
         children = [
             f'<div style="min-width:100;">{label}</div>',
-            f'<textarea cols="{w}" rows="{n}" disabled=True>\n\n{j}\n\n</textarea>'
+            # f'<textarea cols="{w}" rows="{n}" disabled=True>\n\n{j}\n\n</textarea>'
+            f'<pre>{j}</pre>'
         ]
         return '\n\n'.join(children)
 
     @staticmethod
-    def vm_Image(label='', imageblob=None, children='', width=0.8, caption="", **kwargs):       
+    def vm_Image(imageblob=None, children='', width=0.8, caption="", **kwargs):       
         
         if imageblob is None:
             imageblob = ''
@@ -141,15 +142,10 @@ class html_renderer:
         
 
         children = [
-            f'<div style="min-width:100;">{label}</div>',
-            f'<div style="min-width:100;">image-name:</div>',
-            f'<div>{children}</div>',
-            f'<div style="min-width:100;">width</div>',
-            f'<div>{width}</div>',
-            f'<div style="min-width:100;">caption</div>',
-            f'<div>{caption}</div>',
-            f"<image src=\"{s}\", style=\"max-width:80%\"></image>",
-            ]
+            f'<div style="margin-top: 1.5em; width: 100%; text-align: center;"><span style="min-width:100;display: inline-block;"><b>image-name: </b>{children}</span></div>',
+            f"<div style=\"width: 100%; text-align: center;\"><image src=\"{s}\", style=\"max-width:{int(width*100)}%;display: inline-block;\"></image></div>",
+            f'<div style="width: 100%; text-align: center;"><span style="min-width:100;display: inline-block;"><b>caption: </b>{caption}</span></div>',
+        ]
         
         # children = dcc.Upload(id=self.mkid('helper_uploadfile'), children=children, multiple=False, disable_click=True)
 

@@ -1,5 +1,8 @@
 # pydocmaker
-a minimal document maker to make docx, markdown, html, and tex documents from python.
+a minimal document maker to make docx, markdown, html, textile, redmine and tex documents from python.
+
 Written in pure python. 
 
-Named in honor and spirit after the famous [pandoc](https://github.com/jgm/pandoc) package.
+## Usage
+
+best look at the examples folder

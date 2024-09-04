@@ -10,23 +10,31 @@ def bindoc2attachment(mybytes, filename):
     return {"path" : content, "filename" : filename, "content_type" : "application/octet-stream"}
 
 
-def convert(doc:List[dict], with_attachments=True, files_to_upload=None):
+def convert(doc:List[dict], with_attachments=True, files_to_upload=None, aformat_redmine=False):
 
     files_to_upload = {} if not files_to_upload else files_to_upload
 
-    formatter = DocumentRedmineFormatter()
+    formatter = DocumentRedmineFormatter(aformat_redmine=aformat_redmine)
     s = formatter.digest(doc)
     text = '\n'.join(s)
     if with_attachments:
-        attachments = [doc2attachment(doc)]
-        attachments += formatter.attachments 
-        attachments += [bindoc2attachment(bts, k) for k, bts in files_to_upload.items()]
+        if aformat_redmine:
+            attachments = [doc2attachment(doc)]
+            attachments += formatter.attachments 
+            attachments += [bindoc2attachment(bts, k) for k, bts in files_to_upload.items()]
+        else:
+            attachments = {'doc.json': json.dumps(doc, indent=2)}
+            for path, content in formatter.attachments:
+                attachments[path] = content
+            for path, content in files_to_upload.items():
+                assert isinstance(path, str) and path, 'need to give a proper string path!'
+                assert isinstance(content, bytes), 'need to give file content as bytes!'
+                attachments[path] = content
         return text, attachments
     else:
         return text
     
-
-def im2attachment(dc_img):
+def im2file(dc_img):
     mapper = {
             '/' : 'jpg',
             'i' : 'png',
@@ -46,20 +54,25 @@ def im2attachment(dc_img):
 
         #filename = f'img_{time.time_ns()}_{str(id(dc))[-4:]}.{ext}'
         filename = f"img_{hashlib.md5(imageblob.encode('utf-8')).hexdigest()}.{ext}"
+
+    content = io.BytesIO(base64.b64decode(imageblob))
+    return filename, content
+
+def im2attachment(dc_img, filename, content):
+    
     description = dc_img.get('caption', '')
     if not description: 
         description = filename
     
-    content = io.BytesIO(base64.b64decode(imageblob))
-
     return {"path" : content, "filename" : filename, "content_type" : "application/octet-stream", "description": description}
 
 
 class DocumentRedmineFormatter:
 
-    def __init__(self, out_format='textile') -> None:
+    def __init__(self, aformat_redmine=True, out_format='textile') -> None:
         self.attachments = []
         self.out_format = out_format
+        self.aformat_redmine = aformat_redmine
 
     def handle_error(self, err, el) -> list:
         txt = 'ERROR WHILE HANDLING ELEMENT:\n{}\n\n'.format(el)
@@ -78,11 +91,16 @@ class DocumentRedmineFormatter:
         return [children]
     
     def digest_image(self, **kwargs) -> list:
-        attachment = im2attachment(kwargs)
+        filename, content = im2file(kwargs)
+        attachment = im2attachment(kwargs, filename, content)
 
         filename = attachment.get('filename')
         caption = attachment.get('description')
-        self.attachments.append(attachment)
+        if self.aformat_redmine:
+            self.attachments.append(attachment)
+        else:
+            self.attachments.append((filename, content.read()))
+
         s = f'!{filename}({caption})!\n**IMAGE:** attachment:"{filename}" {caption}\n'
         return [s]
     
@@ -91,7 +109,10 @@ class DocumentRedmineFormatter:
 
 
     def digest_verbatim(self, children='', **kwargs) -> list:
-        txt = self.digest(children).strip('\n')
+        if isinstance(children, str):
+            txt = children.strip('\n')
+        else:
+            txt = self.digest(children)
         s = f"""<pre>{txt}</pre>"""
         return [s]
 

@@ -111,7 +111,7 @@ class docx_renderer():
 
     def digest(self, children, *args, **kwargs):
         try:
-            print(f'{type(children)=}, {args=} {kwargs=}')
+            # print(f'{type(children)=}, {args=} {kwargs=}')
             if not children:
                 return ''
             elif isinstance(children, str):

@@ -38,7 +38,8 @@ def convert(doc:List[dict], with_attachments=True, files_to_upload=None):
 
     formatter = ElementFormatter()
     s = formatter.format(doc)
-    text = '\n'.join(s)
+    
+    text = '\n'.join(s) if isinstance(s, list) else s
     if with_attachments:
         return text, formatter.attachments
     else:
@@ -105,9 +106,7 @@ class ElementFormatter:
 
                 imageblob = imageblob.encode("utf8")
 
-            data = imageblob.split(b";base64,")[1]
-            assert not os.path.exists(relpath), f'can not write a file if it already exists! "{children}'
-            
+            data = imageblob.split(b";base64,")[-1]
             self.attachments[relpath] = base64.decodebytes(data)
 
         txt = fr'\includegraphics[{width}]{{{path}}}'
