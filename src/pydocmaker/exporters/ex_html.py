@@ -75,40 +75,6 @@ class html_renderer:
     
 
     @staticmethod
-    def vm_LargeText(**kwargs):
-        label = kwargs.get('label', '')
-        content = kwargs.get('content', kwargs.get('children'))
-    
-        nn = [len(s) for s in content.split('\n')]
-        n = len(n)
-        w = max(nn)
-        return f'<div style="min-width:100;">{label}</div><hr></hr>\n\n<textarea cols="{w}" rows="{n}" disabled=True>\n\n{content}\n\n</textarea>'
-    
-
-    @staticmethod
-    def vm_Iterator(**kwargs):
-        children = []
-        content = kwargs.get('content', kwargs.get('children'))
-        for i, c in enumerate(content, 1):
-            children.append(c.to_html(add_header=False) if hasattr(c, 'get_VM') else c)
-
-        return f'\n\n'.join([f'<div>{c}</div>' for c in children])
-    
-
-
-    @staticmethod
-    def vm_BaseFallback(**kwargs):
-        label = kwargs.get('label', '')
-        content = kwargs.get('content', kwargs.get('children'))
-    
-        j = '#!/RAWJSON!\n' + json.dumps(content, indent=2)
-        nn = [len(s) for s in j.split('\n')]
-        n = len(n)
-        w = max(nn)
-        return f'<div style="min-width:100;">{label}</div><hr></hr>\n\n<textarea cols="{w}" rows="{n}" disabled=True>\n\n{j}\n\n</textarea>'
-    
-
-    @staticmethod
     def vm_Verbatim(**kwargs):
         label = kwargs.get('label', '')
         content = kwargs.get('content', kwargs.get('children'))
@@ -152,31 +118,9 @@ class html_renderer:
         return '\n\n'.join(children)
 
     @staticmethod
-    def vm_BaseFallback(**kwargs):
-        label = kwargs.get('label', '')
-        content = kwargs.get('content', kwargs.get('children'))
-    
-        j = '#!/RAWJSON!\n' + json.dumps(content, indent=2)
-        nn = [len(s) for s in j.split('\n')]
-        n = len(n)
-        w = max(nn)
-        return f'<div style="min-width:100;">{label}</div><hr></hr>\n\n<textarea cols="{w}" rows="{n}" disabled=True>\n\n{j}\n\n</textarea>'
-    
-    @staticmethod
     def vm_Iterator( **kwargs):
-        label = kwargs.get('label', '')
         content = kwargs.get('content', kwargs.get('children'))
         return f'\n\n'.join([f'<div>{c}</div>' for c in content])
-    
-    @staticmethod
-    def vm_LargeText(**kwargs):
-        label = kwargs.get('label', '')
-        content = kwargs.get('content', kwargs.get('children'))
-        nn = [len(s) for s in content.split('\n')]
-        n = len(n)
-        w = max(nn)
-        return f'<div style="min-width:100;">{label}</div><hr></hr>\n\n<textarea cols="{w}" rows="{n}" disabled=True>\n\n{content}\n\n</textarea>'
-    
 
 
 def html_docdc2html(content):
