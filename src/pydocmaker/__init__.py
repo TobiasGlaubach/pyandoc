@@ -1,4 +1,4 @@
-__version__ = '1.3.2'
+__version__ = '1.3.3'
 
 from pydocmaker.core import DocBuilder, construct, constr, buildingblocks, print_to_pdf
 from pydocmaker.util import upload_report_to_redmine

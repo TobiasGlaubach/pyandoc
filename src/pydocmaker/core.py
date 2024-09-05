@@ -748,6 +748,44 @@ class DocBuilder(UserList):
         else:
             raise KeyError(f'engine must be in: {DocBuilder.export_engines=}, but was {engine=}')
         
+    def upload(self, url, doc_name='', force_overwrite=False, page_title='', requests_kwargs=None):
+        """Uploads the document data to a specified URL.
+            The json body is constructed as:
+            
+            upload = {
+                "doc_name": doc_name,
+                "doc": self.dump(),
+                "force_overwrite": force_overwrite,
+                "page_title": page_title
+            }
+
+        Args:
+            url (str): The URL of the endpoint that accepts the document data.
+            doc_name (str, optional): The name of the uploaded document. Defaults to ''.
+            force_overwrite (bool, optional): Whether to overwrite an existing document. Defaults to False.
+            page_title (str, optional): The title of the uploaded document (if applicable). Defaults to ''.
+            requests_kwargs: (dict, optional) with kwargs for requests.post(). Defaults to None.
+
+        Returns:
+            dict: The JSON response from the server after uploading the document.
+
+        Raises:
+            requests.exceptions.RequestException: If the upload request fails.
+        """
+
+        upload = {
+            "doc_name": doc_name,
+            "doc": self.dump(),
+            "force_overwrite": force_overwrite,
+            "page_title": page_title
+        }
+
+        requests_kwargs = {} if not requests_kwargs else None
+        r = requests.post(url, json=upload, **requests_kwargs)
+        r.raise_for_status()
+        return r.json()
+    
+
 
     def show(self, index=None, chapter=None, engine='markdown'):
         """Displays the document or a specific part of it in ipython display or via print
