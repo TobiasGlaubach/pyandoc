@@ -28,12 +28,6 @@ from .exporters.ex_tex import convert as _to_tex
 
 def is_notebook() -> bool:
     try:
-        import __main__ as main
-        return not hasattr(main, '__file__')
-    except Exception as err:
-        pass
-
-    try:
         shell = get_ipython().__class__.__name__
         if shell == 'ZMQInteractiveShell':
             return True   # Jupyter notebook or qtconsole
@@ -775,8 +769,8 @@ class DocBuilder(UserList):
         
         if is_notebook():
             from IPython.display import display, HTML, Markdown
-            # display(HTML(self.to_html()))
-
+            display(HTML(self.to_html()))
+            # display(Markdown(self.to_markdown()))
         else:
             print(self.to_markdown(embed_images=False))
 
