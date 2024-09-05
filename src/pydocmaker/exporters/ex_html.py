@@ -76,7 +76,7 @@ class html_renderer:
 
     @staticmethod
     def vm_Verbatim(**kwargs):
-        label = kwargs.get('label', '')
+        label = kwargs.get('caption', kwargs.get('label', ''))
         content = kwargs.get('content', kwargs.get('children'))
 
         j = content
@@ -86,7 +86,7 @@ class html_renderer:
         children = [
             f'<div style="min-width:100;">{label}</div>',
             # f'<textarea cols="{w}" rows="{n}" disabled=True>\n\n{j}\n\n</textarea>'
-            f'<pre>{j}</pre>'
+            f'<pre style="margin: 15px; margin-left: 25px; padding: 10px; border: 1px solid gray; border-radius: 3px;">{j}</pre>'
         ]
         return '\n\n'.join(children)
 

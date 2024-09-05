@@ -68,7 +68,7 @@ class DocumentRedmineFormatter:
             txt += '\n'.join(traceback.format_exception(err, limit=5)) + '\n'
         else:
             txt += err + '\n'
-        txt = f"""<pre>\n{txt}\n</pre>"""
+        txt = f"""<pre style="margin: 15px; margin-left: 25px; padding: 10px; border: 1px solid gray; border-radius: 3px; color: red;">\n{txt}\n</pre>"""
 
         return [txt]
 
@@ -101,7 +101,7 @@ class DocumentRedmineFormatter:
             txt = children.strip('\n')
         else:
             txt = self.digest(children)
-        s = f"""<pre>{txt}</pre>"""
+        s = f"""<pre style="margin: 15px; margin-left: 25px; padding: 10px; border: 1px solid gray; border-radius: 3px;">{txt}</pre>"""
         return [s]
 
 
