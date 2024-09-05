@@ -1,5 +1,16 @@
 # pydocmaker
-a minimal document maker to make docx, markdown, html, textile, redmine and tex documents from python.
+
+a minimal python document maker to create reports in the following formats:
+
+- `md`: Markdown
+- `html`: HTML
+- `json`: JSON
+- `docx`:: Word docx
+- `textile`: Textile Markup language (with images as attachments)
+- `ipynb`: Jupyter/ IPython Notebooks
+- `tex`: Latex Documents (with external images)
+- `redmine`: Textile Markup language ready for uplaod to Redmine 
+
 
 Written in pure python. 
 
@@ -62,6 +73,15 @@ doc.to_ipynb('path/to/my_file.ipynb') # will write a ipynb file
 
 doc.to_json('path/to/doc.json') # saves the document
 ```
+
+upload to redmine via:
+
+```python
+import redminelib
+redmine = redminelib.Redmine('https://your-redmine-instance.com', key='your_redmine_token')
+page = doc.to_redmine_upload(redmine, 'your-test-project')
+```
+
 
 
 ## Detailed Usage Instructions
