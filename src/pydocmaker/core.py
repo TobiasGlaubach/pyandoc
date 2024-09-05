@@ -4,18 +4,23 @@ import json, io
 import os
 import re
 import time
+from typing import List, SupportsRead
 import zipfile
 import requests
 import base64
 import copy
 
+import subprocess
+import os
 
 
-from ..exporters.ex_docx import convert as _to_docx
-from ..exporters.ex_html import convert as _to_html
-from ..exporters.ex_ipynb import convert as _to_ipynb
-from ..exporters.ex_redmine import convert as _to_textile
-from ..exporters.ex_tex import convert as _to_tex
+
+
+from .exporters.ex_docx import convert as _to_docx
+from .exporters.ex_html import convert as _to_html
+from .exporters.ex_ipynb import convert as _to_ipynb
+from .exporters.ex_redmine import convert as _to_textile
+from .exporters.ex_tex import convert as _to_tex
 
 
 def is_notebook() -> bool:
@@ -38,6 +43,19 @@ def is_notebook() -> bool:
 
 
 
+def _is_chapter(dc):
+    if not isinstance(dc, dict):
+        return ''
+    if not dc.get('typ') == 'markdown':
+        return ''
+    lines = dc.get('children', '').split('\n')
+    if not len(lines) == 1:
+        return ''
+    if not lines[0].startswith('# '):
+        return ''
+    return lines[0].lstrip('#').strip()
+
+    
 
 class constr():
     """This is the basic schema for the main building blocks for a document"""
@@ -223,14 +241,63 @@ class constr():
 
 buildingblocks = 'text markdown image verbatim iter'.split()
 
-class FlowDoc(UserList):
-    """an unordered collection of document parts to make a document (can be used like a list)"""
+class DocBuilder(UserList):
+    """a collection of document parts to make a document (can be used like a list)"""
 
-    def add(self, part:dict=None):
-        """append a new document part to the end of this document
+    def add_chapter(self, chapter_name:str, chapter_index=None):
+        """Adds a new chapter to the document.
 
         Args:
-            part (dict): the part to add. see the constr class for all possible parts.
+            chapter_name (str): The name of the new chapter.
+            chapter_index (int, optional): The index after which chapter to insert the new chapter. If None, appends to the end.
+
+        Raises:
+            AssertionError: If `chapter_name` is not a string or is empty.
+        """
+        assert isinstance(chapter_name, str), f'chapter name must be type string but was {type(chapter_name)=} {chapter_name=}'
+        assert chapter_name, 'chapter_name can not be empty'
+        self.add_kw('markdown', '# ' + chapter_name, chapter=chapter_index)
+
+
+    def get_chapters(self, as_ranges=False):
+        """Extracts chapters from the internal data and returns them as either dictionaries or ranges.
+
+        This method iterates through the internal data structure (represented by `self.data`) and identifies chapters based on a custom logic implemented in the `_is_chapter` function.
+
+        Args:
+            as_ranges (bool, optional): If True, returns chapters as dictionaries with keys as chapter names (obtained from the previous chapter) and values as ranges of indices (inclusive-exclusive) within the data list representing the chapter content. Defaults to False.
+
+        Returns:
+            dict or dict[str, range]:
+                If `as_ranges` is False, returns a dictionary where keys are chapter names and values are corresponding chapter content extracted from the data list using the identified ranges.
+                If `as_ranges` is True, returns a dictionary where keys are chapter names and values are ranges of indices (inclusive-exclusive) within the data list representing the chapter content.
+        """
+
+        chapters = {}
+        sec_name = ''
+        i_low = 0
+        for i, part in enumerate(self.data):
+            if _is_chapter(part) and i > i_low:
+                chapters[sec_name] = range(i_low, i)
+                i_low = i
+
+        if not as_ranges:
+            return {k:self.data[rng] for k, rng in chapters.items()}
+        else:
+            return chapters
+        
+
+    def add(self, part:dict=None, index=None, chapter=None):
+        """Appends a new document part to the given location or end of this document.
+
+        Args:
+            part (dict): The part to add. See the `constr` class for all possible parts.
+            index (int, optional): The index where to insert the part. If None, appends to the end.
+            chapter (str | int, optional): The chapter name or index where to insert the part. If None, appends to the end.
+
+        Raises:
+            ValueError: If the `part` is invalid, or if both `index` and `chapter` are specified.
+            AssertionError: If `index` is not an integer or is out of bounds.
         """
         assert part, 'need to give an element_to_add!'
         
@@ -238,19 +305,73 @@ class FlowDoc(UserList):
             part = constr.text(part)
 
         assert hasattr(constr, part.get('typ', None)), 'the part to add is of unknown type!'
-        self.append(part)
-            
-    def add_kw(self, typ, children=None, **kwargs):
+        assert index is None or chapter is None, f'can either give index OR chapter!'
+
+        if not chapter is None:
+            sections = self.get_chapters(as_ranges=True)
+            if isinstance(chapter, int):
+                chapter = list(sections.keys())[chapter] 
+
+            if not chapter in sections:
+                self.add_section(chapter)
+                chapter = None # just append to end!
+            else:
+                index = sections[chapter].stop # set to after the last element of this chapter
+
+        if index is None:
+            index = len(self) # append to end
+        
+        assert isinstance(index, int), f'index must be None or int but was {type(index)=} {index=}'
+        assert 0 <= index <= len(self), f'index must be 0 <= index <= len(self) but was {index=}, {len(self)=}'    
+        self.insert(index, part)
+
+
+
+    def add_kw(self, typ, children=None, index=None, chapter=None, **kwargs):
         """add a document part to this document with a given typ
 
         Args:
             typ (str, optional): one of the allowed document part types. Either 'markdown', 'verbatim', 'text', 'iter' or 'image'.
             children (str or list): the "children" for this element. Either text directly (as string) or a list of other parts
+            index (int, optional): The index where to insert the part. If None, appends to the end.
+            chapter (str | int, optional): The chapter name or index where to insert the part. If None, appends to the end.
+
             kwargs: the kwargs for such a document part
         """
-
         assert typ, 'need to give a content type!'
-        self.add(construct(typ, children=children, **kwargs))
+        self.add(construct(typ, children=children, index=index, chapter=chapter, **kwargs))
+    
+    def add_image(self, image, caption = '', width=0.8, children=None, index=None, chapter=None, **kwargs):
+        """add a image type dict from given image input.
+        image can be of type:
+            - pyplot figure
+            - link to download an image from
+            - filelike
+            - numpy NxMx1 or NxMx3 matrix
+            - PIL image
+
+        Args:
+            im (np.array): the image as NxMx
+            caption (str, optional): the caption to give to the image. Defaults to ''.
+            width (float, optional): The width for the image to have in the document. Defaults to 0.8.
+            name (str, optional): A specific name/id to give to the image (will be auto generated if None). Defaults to None.
+            index (int, optional): The index where to insert the part. If None, appends to the end.
+            chapter (str | int, optional): The chapter name or index where to insert the part. If None, appends to the end.
+
+        """
+
+        if isinstance(image, str) and image.startswith('http'):
+            docpart = constr.image_from_link(url=image, caption=caption, children=children, width=width)
+        elif isinstance(image, str) and len(image) < 5_000 and os.path.exists(image):
+            docpart = constr.image_from_file(path=image, caption=caption, children=children, width=width)
+        elif isinstance(image, str):
+            docpart = constr.image(imageblob=image, caption=caption, children=children, width=width)
+        elif 'Figure' in str(type(image)):
+            docpart = constr.image_from_fig(fig=image, caption=caption, children=children, width=width)
+        else:
+            docpart = constr.image_from_obj(image, caption=caption, children=children, width=width)
+
+        self.add(docpart, index=index, chapter=chapter)
 
     def dump(self):
         """dump this document to a basic list of dicts for document parts
@@ -397,169 +518,12 @@ class FlowDoc(UserList):
         """
         return _to_textile(self.dump(), with_attachments=True, aformat_redmine=True)
     
-
     def show(self):
         if is_notebook():
             from IPython.display import display, HTML
             return display(HTML(self.to_html()))
         else:
             return print(self.to_json())
-
-class SectionedDoc(UserDict):
-    """a sectioned collection of document parts to make a document (can be used like a dict)"""
-
-    def add_section(self, caption, children:list=None):
-        assert caption, 'need to give a caption!'
-        assert not caption in self, f'section with {caption=} already exists in Document'
-        assert children is None or isinstance(children, list), 'children must be of type list or None'
-        self[caption] = FlowDoc() if children is None else children
-
-    def add(self, section_caption:str, part:dict):
-        """append a new document part to the end of this document
-
-        Args:
-            part (dict): the part to add. see the constr class for all possible parts.
-        """
-        if not section_caption and len(self):
-            section_caption = list(self.keys())[-1]
-        
-        assert section_caption, 'need to give a section_caption to add to!'
-        assert part, 'need to give an element_to_add!'
-
-        if isinstance(part, str):
-            part = constr.text(part)
-
-        assert hasattr(constr, part.get('typ', None)), 'the element to add is of unknown type!'
-        if not section_caption in self:
-            self.add_section(caption=section_caption)
-        self[section_caption].add(part)
-            
-    def add_kw(self, section_caption, typ, children=None, **kwargs):
-        """add a document part to this document with a given typ
-
-        Args:
-            section_caption (str): the key/name/caption to add this part to
-            typ (str): one of the allowed document part types. Either 'markdown', 'verbatim', 'text', 'iter' or 'image'.
-            children (str or list): the "children" for this element. Either text directly (as string) or a list of other parts
-            kwargs: the kwargs for such a document part
-        """
-        
-        assert typ, 'need to give a content type!'
-        self.add(section_caption, construct(typ, children=children, **kwargs))
-
-    def to_flow_doc(self):
-        doc = FlowDoc()
-        for section_caption, section_parts in self.items():
-            doc.add(constr.markdown(f'## {section_caption}'))
-            for part in section_parts:
-                doc.add(part)
-        return doc
-    
-    def dump(self):
-        return self.to_flow_doc().dump()
-
-
-    def to_json(self, path_or_stream=None) -> str:
-        """
-        Converts the current object to a JSON file.
-
-        Args:
-            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
-
-        Returns:
-            str: The JSON data as string, or True if the data was saved successfully to a file or stream.
-        """
-        return self.to_flow_doc().to_json(path_or_stream)
-
-    def to_docx(self, path_or_stream=None) -> bytes:
-        """
-        Converts the current object to a DOCX file.
-
-        Args:
-            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
-
-        Returns:
-            str: The data as bytes, or True if the data was saved successfully to a file or stream.
-        """
-        return self.to_flow_doc().to_docx(path_or_stream)
-    
-    def to_ipynb(self, path_or_stream=None) -> str:
-        """
-        Converts the current object to an ipynb (iPython notebook) file.
-
-        Args:
-            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
-
-        Returns:
-            str: The data as string, or True if the data was saved successfully to a file or stream.
-        """
-        return self.to_flow_doc().to_ipynb(path_or_stream)
-    
-    def to_html(self, path_or_stream=None) -> str:
-        """
-        Converts the current object to a HTML file.
-
-        Args:
-            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
-
-        Returns:
-            str: The data as string, or True if the data was saved successfully to a file or stream.
-        """
-        return self.to_flow_doc().to_html(path_or_stream)
-    
-    def to_tex(self, path_or_stream=None):
-        """
-        Converts the current object to a TEX file (and attachments).
-
-        Args:
-            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
-
-        Returns:
-            case saving to file or stream:
-                True if the data was saved successfully to a file or stream.
-            case returning:
-                str: The tex file as string
-                dict: The additional input files needed for LateX (bytes) as values and their relative pathes (str) as keys
-        """
-        return self.to_flow_doc().to_tex(path_or_stream)
-    
-    def to_textile(self, path_or_stream=None):
-        """
-        Converts the current object to a TEXTILE file (and attachments). 
-        If path_or_stream is given it will zip all contents and write it to the stream or file path given.
-        If not it will return a tuple with textile (str), files (dict[str, bytes])
-
-        Args:
-            path_or_stream (str or io.IOBase, optional): The path to save the file to, or a file-like object to write the data to. If not provided, the data will be returned as string.
-        """
-        return self.to_flow_doc().to_textile(path_or_stream)
-        
-    
-    def to_redmine(self):
-        """
-        Converts the current object to a Redmine Textile like text (and attachments) and returns them as tuple
-        """
-        return self.to_flow_doc().to_redmine()
-    
-
-
-    def show(self):
-        if is_notebook():
-            from IPython.display import HTML
-            return HTML(self.to_html())
-        else:
-            return self.to_json()
-
-# def _serialize(v):
-#     if isinstance(v, (str, float)):
-#         return v
-#     elif isinstance(v, list):
-#         return [dump(vv) for vv in v]
-#     elif isinstance(v, dict):
-#         return v
-#     else:
-#         TypeError(f'{type(v)=} is of unknown type only dataclass, str, list, and dict is allowed!')
-
 
 def _construct(v):
 
@@ -572,19 +536,73 @@ def _construct(v):
     else:
         TypeError(f'{type(v)=} is of unknown type only dataclass, str, list, and dict is allowed!')
 
-def construct(type:str, **kwargs):
-    assert isinstance(type, str)
-    if not kwargs and not hasattr(constr, type):
-        return type
-    elif hasattr(constr, type):
+def construct(typ:str, **kwargs):
+    assert isinstance(typ, str)
+    if not kwargs and not hasattr(constr, typ):
+        return typ
+    elif hasattr(constr, typ):
         children = kwargs.get('children')
         if children:
             kwargs['children'] = _construct(children)
-        constructor = getattr(constr, type)
+        constructor = getattr(constr, typ)
         return constructor(**kwargs)
     else:
-        TypeError(f'{type=} is of unknown type only dataclass, str, list, and dict is allowed!')
+        TypeError(f'{typ=} is of unknown type only dataclass, str, list, and dict is allowed!')
 
+
+def load(doc:List[dict]|str|SupportsRead[str|bytes]):
+    """Loads a document from a list of dictionaries, a file path, or a stream-like object.
+
+    Args:
+        doc (List[dict] | str | SupportsRead[str | bytes]): The document data, file path, or stream-like object.
+
+    Returns:
+        DocBuilder: A DocBuilder object representing the loaded document.
+
+    Raises:
+        ValueError: If the document is not a list, file path, or stream-like object, or if the file or stream cannot be loaded.
+    """
+
+    if isinstance(doc, str) and doc.strip().startswith('['):
+        doc = json.loads(doc)
+
+    if isinstance(doc, str):
+        with open(doc, 'r') as fp:
+            doc = json.load(fp)
+    
+    if hasattr(doc, 'read') and hasattr(doc, 'seek'):
+        doc = json.load(fp)
+
+    assert isinstance(doc, list), f'doc must be list but was {type(doc)=} {doc=}'
+    return DocBuilder(doc)
+
+    
+
+    
+    
+
+
+def print_to_pdf(file_path, output_pdf_path):
+    """Prints a file to a PDF file using the appropriate platform-specific command.
+
+    Args:
+        file_path (str): The path to the file to print.
+        output_pdf_path (str): The path to the output PDF file.
+
+    Raises:
+        ValueError: If the platform is not supported.
+    """
+
+    os_name = os.name
+    if os_name == "nt":
+        command = ["print", "/D", "file:///dev/stdout", "/o", f"output-file={output_pdf_path}", file_path]
+    elif os_name == "posix":
+        command = ["lp", "-d", "file:///dev/stdout", "-o", f"output-file={output_pdf_path}", file_path]
+    else:
+        raise ValueError(f"Unsupported platform: {os_name}")
+
+    subprocess.run(command, check=True)
+    
 # def dump(obj):
 #     if isinstance(obj, list):
 #         return [dump(o) for o in obj]
@@ -593,8 +611,4 @@ def construct(type:str, **kwargs):
 #     return {k:_serialize(v) for k, v in obj.items()}
 
 
-
-
-if __name__ == "__main__":
-    mysection = constr.markdown('# Introduction')
 

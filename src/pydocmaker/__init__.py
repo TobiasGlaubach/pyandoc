@@ -1,6 +1,6 @@
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
-from pydocmaker.core.schema import FlowDoc, SectionedDoc, construct, constr, buildingblocks
+from pydocmaker.core import DocBuilder, SectionedDoc, construct, constr, buildingblocks
 
 from pydocmaker.exporters.ex_docx import convert as to_docx
 from pydocmaker.exporters.ex_html import convert as to_html
