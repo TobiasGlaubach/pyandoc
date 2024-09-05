@@ -600,14 +600,24 @@ class DocBuilder(UserList):
             print_to_pdf(html_file_path, output_pdf_path)
 
             if not path_or_stream:
-                return open(output_pdf_path, 'rb').read()
+                data = open(output_pdf_path, 'rb').read()
+                if not len(data):
+                    raise IOError(f'failed to write {output_pdf_path=}')
+                return data
             elif hasattr(path_or_stream, 'write'):
-                return path_or_stream.write(open(output_pdf_path, 'rb').read())
+                data = open(output_pdf_path, 'rb').read()
+                if not len(data):
+                    raise IOError(f'failed to write {output_pdf_path=}')           
+                path_or_stream.write(data)
+                return True
             else:
                 assert isinstance(path_or_stream, str), f'path_or_stream is not a string but {type(path_or_stream)=}'
                 assert isinstance(output_pdf_path, str), f'output_pdf_path is not a string but {type(output_pdf_path)=}'
                 assert output_pdf_path == path_or_stream, f'something went wrong, since the PDF file was written to {output_pdf_path=} instead of {path_or_stream=}'
-                return os.path.exists(path_or_stream)
+                exists = os.path.exists(path_or_stream)
+                if not exists:
+                    raise IOError(f'failed to write {path_or_stream=}')
+                return exists
 
     def export_all(self, dir_path=None, report_name='exported_report', **kwargs):
         """
