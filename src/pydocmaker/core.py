@@ -16,6 +16,7 @@ import os
 
 
 
+from .util import upload_report_to_redmine
 
 from .exporters.ex_docx import convert as _to_docx
 from .exporters.ex_html import convert as _to_html
@@ -92,9 +93,14 @@ class constr():
     
     @staticmethod
     def image(imageblob='', caption='', children='', width=0.8):
+
+        if not children:
+            # HACK: need to get format somehow
+            children = f'img_{time.time_ns()}.png'
+
         return {
             'typ': 'image',
-            'children': children,
+            'children': re.sub(r"[^a-zA-Z0-9_.-]", '', children),
             'imageblob': imageblob.decode("utf-8") if isinstance(imageblob, bytes) else imageblob,
             'caption': caption,
             'width': width,
@@ -431,6 +437,8 @@ class DocBuilder(UserList):
         return [copy.deepcopy(v) for v in self]
     
     def _ret(self, m, path_or_stream):
+        
+
         if path_or_stream and isinstance(path_or_stream, str):
             mode = 'w' if isinstance(m, str) else 'wb'
             with open(path_or_stream, mode) as f:
@@ -438,7 +446,14 @@ class DocBuilder(UserList):
             return True
         
         elif hasattr(path_or_stream, 'write'):
-            path_or_stream.write(m)
+            try:
+                path_or_stream.write(m)
+            except TypeError:
+                if isinstance(m, str):
+                    path_or_stream.write(m.encode())
+                else:
+                    raise
+
             return True
         else:
             return m
@@ -573,9 +588,30 @@ class DocBuilder(UserList):
         """
         Converts the current object to a Redmine Textile like text (and attachments) and returns them as tuple
         """
+
         return _to_textile(self.dump(), with_attachments=True, aformat_redmine=True)
     
+    def to_redmine_upload(self, redmine, project_id:str|int, report_name=None, page_title=None, force_overwrite=False, verb=True):
+        """Converts the current object to a Redmine Textile like text (and attachments) and Uploads it to a Redmine wiki page.
+        This will also export the document to all possible formats and attach them to the wiki page.
 
+        Args:
+            redmine (redminelib.Redmine): A Redmine connection object.
+            project_id (str|int): The ID of the Redmine project where the report should be uploaded.
+            report_name (str, optional): The name of the report. If not provided, the follwoing schema `%Y%m%d_%H%M_exported_report` will be used.
+            page_title (str, optional): The title of the Redmine wiki page. If not provided, it will be derived from the report name.
+            force_overwrite (bool, optional): Whether to overwrite an existing page with the same title. Defaults to False.
+            verb (bool, optional): Whether to print verbose output during upload. Defaults to True.
+
+        Returns:
+            redminelib.WikiPage: The uploaded Redmine wiki page object.
+
+        Raises:
+            AssertionError: If any of the `doc`, `project_id` or `redmine` arguments is None or empty.
+        """
+            
+        return upload_report_to_redmine(self, redmine=redmine, project_id=project_id, report_name=report_name, page_title=page_title, force_overwrite=force_overwrite, verb=verb)
+    
     def to_pdf(self, path_or_stream=None):
         """Exports the document to a PDF file.
 
@@ -660,14 +696,14 @@ class DocBuilder(UserList):
         for engine in engines:
             engine = engine.strip('').strip('.')
             if dir_path is None:
-                ext = DocBuilder.export_engine_extensions.get(engine, engine)
+                ext = DocBuilder.export_engine_extensions.get(engine, '.' + engine)
                 path = None
                 key = report_name + ext
             else:
-                ext = DocBuilder.export_engine_extensions.get(engine, engine)
+                ext = DocBuilder.export_engine_extensions.get(engine, '.' + engine)
                 path = os.path.join(dir_path, report_name + ext)
                 key = path
-
+            
             ret[key] = self.export(engine, path, **kwargs.get(engine, {}))
         
         return ret

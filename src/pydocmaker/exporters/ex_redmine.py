@@ -1,34 +1,20 @@
 import yaml, base64, time, io, copy, json, traceback, hashlib, markdown, re
 from typing import List
 
-def doc2attachment(doc_dc):
-    content = io.BytesIO(bytes(json.dumps(doc_dc, indent=2), 'ascii'))
-    return {"path" : content, "filename" : 'doc_dict.json', "content_type" : "application/octet-stream"}
-
-def bindoc2attachment(mybytes, filename):
-    content = io.BytesIO(mybytes)
-    return {"path" : content, "filename" : filename, "content_type" : "application/octet-stream"}
 
 
-def convert(doc:List[dict], with_attachments=True, files_to_upload=None, aformat_redmine=False):
+def convert(doc:List[dict], with_attachments=True, aformat_redmine=False):
 
-    files_to_upload = {} if not files_to_upload else files_to_upload
 
     formatter = DocumentRedmineFormatter(aformat_redmine=aformat_redmine)
     s = formatter.digest(doc)
     text = '\n'.join(s)
     if with_attachments:
         if aformat_redmine:
-            attachments = [doc2attachment(doc)]
-            attachments += formatter.attachments 
-            attachments += [bindoc2attachment(bts, k) for k, bts in files_to_upload.items()]
+            attachments = [v for v in formatter.attachments]
         else:
             attachments = {'doc.json': json.dumps(doc, indent=2)}
             for path, content in formatter.attachments:
-                attachments[path] = content
-            for path, content in files_to_upload.items():
-                assert isinstance(path, str) and path, 'need to give a proper string path!'
-                assert isinstance(content, bytes), 'need to give file content as bytes!'
                 attachments[path] = content
         return text, attachments
     else:
@@ -63,7 +49,9 @@ def im2attachment(dc_img, filename, content):
     description = dc_img.get('caption', '')
     if not description: 
         description = filename
-    
+
+    assert isinstance(content, (bytes, io.BytesIO)), f'content must be type bytes but was {type(content)=} {content=}'
+    content = io.BytesIO(content) if isinstance(content, bytes) else content
     return {"path" : content, "filename" : filename, "content_type" : "application/octet-stream", "description": description}
 
 
