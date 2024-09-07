@@ -18,13 +18,13 @@ def path2attachment(path, filename):
 
 
 
-def upload_report_to_redmine(doc, redmine, project_id:str|int, report_name=None, page_title=None, force_overwrite=False, verb=True):
+def upload_report_to_redmine(doc, redmine, project_id, report_name=None, page_title=None, force_overwrite=False, verb=True):
     """Uploads a report generated from a DocBuilder object to a Redmine wiki page.
 
     Args:
         doc (DocBuilder): The DocBuilder object containing the report data.
         redmine (redminelib.Redmine): A Redmine connection object.
-        project_id (str|int): The ID of the Redmine project where the report should be uploaded.
+        project_id (str): The ID of the Redmine project where the report should be uploaded.
         report_name (str, optional): The name of the report. If not provided, the follwoing schema `%Y%m%d_%H%M_exported_report` will be used.
         page_title (str, optional): The title of the Redmine wiki page. If not provided, it will be derived from the report name.
         force_overwrite (bool, optional): Whether to overwrite an existing page with the same title. Defaults to False.

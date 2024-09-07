@@ -585,13 +585,13 @@ class DocBuilder(UserList):
 
         return _to_textile(self.dump(), with_attachments=True, aformat_redmine=True)
     
-    def to_redmine_upload(self, redmine, project_id:str|int, report_name=None, page_title=None, force_overwrite=False, verb=True):
+    def to_redmine_upload(self, redmine, project_id:str, report_name=None, page_title=None, force_overwrite=False, verb=True):
         """Converts the current object to a Redmine Textile like text (and attachments) and Uploads it to a Redmine wiki page.
         This will also export the document to all possible formats and attach them to the wiki page.
 
         Args:
             redmine (redminelib.Redmine): A Redmine connection object.
-            project_id (str|int): The ID of the Redmine project where the report should be uploaded.
+            project_id (str): The ID of the Redmine project where the report should be uploaded.
             report_name (str, optional): The name of the report. If not provided, the follwoing schema `%Y%m%d_%H%M_exported_report` will be used.
             page_title (str, optional): The title of the Redmine wiki page. If not provided, it will be derived from the report name.
             force_overwrite (bool, optional): Whether to overwrite an existing page with the same title. Defaults to False.
@@ -663,7 +663,7 @@ class DocBuilder(UserList):
         """
         return self.export_many(engines=None, dir_path=dir_path, report_name=report_name, **kwargs)
 
-    def export_many(self, engines:list[str]=None, dir_path=None, report_name='exported_report', **kwargs):
+    def export_many(self, engines:List[str]=None, dir_path=None, report_name='exported_report', **kwargs):
         """
         Exports the document to multiple formats.
 
@@ -838,7 +838,7 @@ def construct(typ:str, **kwargs):
         TypeError(f'{typ=} is of unknown type only dataclass, str, list, and dict is allowed!')
 
 
-def load(doc:List[dict]|str|BinaryIO|TextIO|bytes):
+def load(doc:List[dict]):
     """Loads a document from a list of dictionaries, a file path, or a stream-like object.
 
     Args:
