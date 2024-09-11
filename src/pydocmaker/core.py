@@ -375,6 +375,32 @@ class DocBuilder(UserList):
         self.add(construct(typ, children=children, **kwargs), index=index, chapter=chapter)
     
     
+    def add_md(self, children=None, index=None, chapter=None, **kwargs):
+        """add a markdown document part to this document
+
+        Args:
+            children (str or list): the "children" for this element. Either text directly (as string) or a list of other parts
+            index (int, optional): The index where to insert the part. If None, appends to the end.
+            chapter (str | int, optional): The chapter name or index where to insert the part. If None, appends to the end.
+
+            kwargs: the kwargs for such a document part
+        """
+        self.add(construct('markdown', children=children, **kwargs), index=index, chapter=chapter)
+    
+
+    def add_pre(self, children=None, index=None, chapter=None, **kwargs):
+        """add a verbaim (pre formatted) document part to this document
+
+        Args:
+            children (str or list): the "children" for this element. Either text directly (as string) or a list of other parts
+            index (int, optional): The index where to insert the part. If None, appends to the end.
+            chapter (str | int, optional): The chapter name or index where to insert the part. If None, appends to the end.
+
+            kwargs: the kwargs for such a document part
+        """
+        self.add(construct('verbatim', children=children, **kwargs), index=index, chapter=chapter)
+
+
     def add_fig(self, fig=None, caption = '', width=0.8, children=None, index=None, chapter=None, **kwargs):
         """add a pyplot figure type dict from given image input.
         

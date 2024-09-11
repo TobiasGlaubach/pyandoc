@@ -36,6 +36,13 @@ import pydocmaker as pyd
 doc = pyd.DocBuilder() # basic doc where we always append to the end
 doc.add('dummy text') # adds raw text
 
+# this is how to add parts to the document
+doc.add_pre('this will be shown as preformatted')
+doc.add_md('This is some *fancy* `markdown` **text**')
+
+
+# this is a different style of adding elements
+
 # this is how to add preformatted
 doc.add_kw('verbatim', """def hello_world():
     print('hello world!')
